@@ -1,0 +1,63 @@
+{
+  "name": "@mpgxc/logx",
+  "version": "0.0.1",
+  "description": "Uma biblioteca Logger personalizada para o NestJS com injeção de dependência e configuração automática de contexto.",
+  "author": "mpgxc <mpgx5.c@gmail.com>",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mpgxc/logx.git"
+  },
+  "files": [
+    "dist",
+    "index.js",
+    "index.d.ts"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "build": "rimraf dist && tsc -p tsconfig.json",
+    "prepublishOnly": "npm run build",
+    "format": "prettier --write \"lib/**/*.ts\"",
+    "lint": "eslint \"lib/**/*.ts\" --fix",
+    "commit": "git-cz",
+    "release": "semantic-release"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.0.0"
+  },
+  "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^12.0.0",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^10.0.3",
+    "@semantic-release/npm": "^12.0.0",
+    "@semantic-release/release-notes-generator": "^13.0.0",
+    "@types/node": "^20.12.8",
+    "@typescript-eslint/eslint-plugin": "^7.8.0",
+    "@typescript-eslint/parser": "^7.8.0",
+    "cz-conventional-changelog": "^3.3.0",
+    "eslint": "^8.52.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.2.5",
+    "rimraf": "^5.0.5",
+    "source-map-support": "^0.5.21",
+    "ts-loader": "^9.5.1",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.4.5"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  },
+  "dependencies": {
+    "@tsconfig/node20": "^20.1.4"
+  }
+}

@@ -1,0 +1,30 @@
+name: Publish package
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  publish:
+    name: 🚀 Publish package on Github Package Registry
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 📦 Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20.x'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@mpgxc'
+      - name: 📂 Install and Build
+        run: |
+          npm i --omit=dev && npm ci
+          npm run build
+      - name: 📦 Publish on Github Package Registry
+        run: npm publish --access=public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
