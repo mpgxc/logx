@@ -1,6 +1,6 @@
 {
   "name": "@mpgxc/logx",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Uma biblioteca Logger personalizada para o NestJS com injeção de dependência e configuração automática de contexto.",
   "author": "mpgxc <mpgx5.c@gmail.com>",
   "main": "index.js",
