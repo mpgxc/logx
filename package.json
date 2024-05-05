@@ -13,7 +13,8 @@
   "files": [
     "dist",
     "index.js",
-    "index.d.ts"
+    "index.d.ts",
+    "index.ts"
   ],
   "publishConfig": {
     "access": "public",
