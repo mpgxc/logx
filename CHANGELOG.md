@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/mpgxc/logx/compare/v1.0.1...v1.1.0) (2024-05-05)
+
+
+### Features
+
+* enable TypeScript declaration generation ([71cd20c](https://github.com/mpgxc/logx/commit/71cd20c7829b57d83e4b37a6ade9480ace6c4ae8))
+
 ## [1.0.1](https://github.com/mpgxc/logx/compare/v1.0.0...v1.0.1) (2024-05-04)
 
 
