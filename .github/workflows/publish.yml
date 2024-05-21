@@ -7,12 +7,13 @@ on:
       - completed
 
 jobs:
-  publish:
+  publish-github:
     name: 🚀 Publish package on Github Package Registry
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - name: 📦 Setup Node.js
@@ -27,5 +28,9 @@ jobs:
           npm run build
       - name: 📦 Publish on Github Package Registry
         run: npm publish --access=public
+      - name: 📦 Publish on JSR Package Registry
+        run: npx jsr publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+        
