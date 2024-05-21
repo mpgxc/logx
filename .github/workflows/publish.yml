@@ -28,9 +28,10 @@ jobs:
           npm run build
       - name: 📦 Publish on Github Package Registry
         run: npm publish --access=public
-      - name: 📦 Publish on JSR Package Registry
-        run: npx jsr publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: 📦 Publish on JSR Package Registry
+        run: npx jsr publish
+
   
         
