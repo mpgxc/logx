@@ -1,4 +1,5 @@
 import type { DynamicModule, Provider } from '@nestjs/common';
+import { defaultTraceContextProvider } from './context/trace-context';
 import { LOG_DISPATCHER, LOGGER_OPTIONS } from './logger.constants';
 import { LogDispatcher } from './logger.dispatcher';
 import type {
@@ -25,6 +26,7 @@ const resolveOptions = (
     size: options.batch?.size ?? 100,
     intervalMs: options.batch?.intervalMs ?? 2000,
   },
+  traceContext: options.traceContext ?? defaultTraceContextProvider,
 });
 
 const coreProviders: Provider[] = [

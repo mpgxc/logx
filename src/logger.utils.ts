@@ -1,5 +1,6 @@
+import { randomBytes } from 'node:crypto';
 import { DEFAULT_REDACT_KEYS, LEVEL_RANK } from './logger.constants';
-import type { LogLevel, LogRecord } from './logger.interfaces';
+import type { LogLevel, LogRecord, TraceContext } from './logger.interfaces';
 
 /**
  * Builds the DI token used to inject a context-scoped logger.
@@ -8,6 +9,41 @@ import type { LogLevel, LogRecord } from './logger.interfaces';
  */
 export const getLoggerToken = (context = ''): string =>
   `LoggerService:${context}`;
+
+/** Generates a random W3C/OpenTelemetry trace id (16 bytes → 32 hex chars). */
+export const generateTraceId = (): string => randomBytes(16).toString('hex');
+
+/** Generates a random W3C/OpenTelemetry span id (8 bytes → 16 hex chars). */
+export const generateSpanId = (): string => randomBytes(8).toString('hex');
+
+const TRACEPARENT_RE =
+  /^([0-9a-f]{2})-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/;
+
+/**
+ * Parses a W3C `traceparent` header value into a {@link TraceContext}.
+ * Returns `undefined` for malformed values or the all-zero (invalid) trace id.
+ *
+ * @see https://www.w3.org/TR/trace-context/#traceparent-header
+ */
+export const parseTraceparent = (
+  value: string | undefined,
+): TraceContext | undefined => {
+  if (!value) {
+    return undefined;
+  }
+
+  const match = TRACEPARENT_RE.exec(value.trim());
+  if (!match) {
+    return undefined;
+  }
+
+  const [, , traceId, spanId, traceFlags] = match;
+  if (/^0+$/.test(traceId) || /^0+$/.test(spanId)) {
+    return undefined;
+  }
+
+  return { traceId, spanId, traceFlags };
+};
 
 /**
  * Returns the enabled log levels for a minimum level, honoring NestJS'

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { runWithStore } from './context/als';
+import { defaultTraceContextProvider } from './context/trace-context';
 import { LogDispatcher } from './logger.dispatcher';
 import { LoggerService } from './logger.service';
 import type { LogRecord, ResolvedLoggerOptions } from './logger.interfaces';
@@ -11,6 +12,7 @@ const opts: ResolvedLoggerOptions = {
   redact: [],
   exporters: [],
   batch: { size: 100, intervalMs: 2000 },
+  traceContext: defaultTraceContextProvider,
 };
 
 const makeService = () => {
@@ -73,6 +75,28 @@ describe('LoggerService', () => {
 
     expect(captured[0].correlationId).toBe('abc-123');
     expect(captured[0].meta).toMatchObject({ tenant: 'acme' });
+  });
+
+  it('stamps snake_case trace fields and keeps them out of meta', () => {
+    const { service, captured } = makeService();
+
+    runWithStore(
+      {
+        correlationId: 'c1',
+        traceId: 'a'.repeat(32),
+        spanId: 'b'.repeat(16),
+        traceFlags: '01',
+        tenant: 'acme',
+      },
+      () => service.log('traced'),
+    );
+
+    const r = captured[0];
+    expect(r.trace_id).toBe('a'.repeat(32));
+    expect(r.span_id).toBe('b'.repeat(16));
+    expect(r.trace_flags).toBe('01');
+    expect(r.correlationId).toBe('c1');
+    expect(r.meta).toEqual({ tenant: 'acme' }); // trace keys excluded from meta
   });
 
   it('derives "Application" as the fallback context', () => {

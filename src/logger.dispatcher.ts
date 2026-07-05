@@ -38,6 +38,14 @@ export class LogDispatcher implements OnModuleInit, OnApplicationShutdown {
   }
 
   async onModuleInit(): Promise<void> {
+    try {
+      await this.options.traceContext?.init?.();
+    } catch (err) {
+      this.diag.error(
+        `Trace context provider "${this.options.traceContext?.name}" failed to initialize: ${String(err)}`,
+      );
+    }
+
     await Promise.allSettled(
       this.exporters.map(async (exporter) => {
         try {
