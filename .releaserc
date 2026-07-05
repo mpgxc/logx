@@ -17,9 +17,6 @@
       "@semantic-release/git",
       {
         "assets": [
-          "dist/**/*",
-          "index.js",
-          "index.d.ts",
           "CHANGELOG.md",
           "package.json",
           "package-lock.json"
