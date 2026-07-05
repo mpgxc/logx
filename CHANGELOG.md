@@ -1,3 +1,15 @@
+# [2.1.0](https://github.com/mpgxc/logx/compare/v2.0.0...v2.1.0) (2026-07-05)
+
+
+### Bug Fixes
+
+* **ci:** unblock release/publish pipeline ([b53e117](https://github.com/mpgxc/logx/commit/b53e117094cbad2f0ccfecd54a13dc74f7ac31ea))
+
+
+### Features
+
+* **trace:** OpenTelemetry-friendly correlation across all logs ([9b4f874](https://github.com/mpgxc/logx/commit/9b4f874d3685b4e5f306b1500c1eebc17189bba5))
+
 # [2.0.0](https://github.com/mpgxc/logx/compare/v1.1.1...v2.0.0) (2026-07-05)
 
 

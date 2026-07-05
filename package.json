@@ -1,6 +1,6 @@
 {
   "name": "@mpgxc/logx",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A structured NestJS logger with pluggable exporters — ship logs to files, HTTP (Loki/Grafana/Datadog), Postgres, MongoDB, DynamoDB and CloudWatch.",
   "author": "mpgxc <mpgx5.c@gmail.com>",
   "license": "MIT",
