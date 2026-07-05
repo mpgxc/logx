@@ -1,3 +1,18 @@
+# [2.0.0](https://github.com/mpgxc/logx/compare/v1.1.1...v2.0.0) (2026-07-05)
+
+
+* feat!: rewrite as structured logger with pluggable exporters (v2) ([c67780a](https://github.com/mpgxc/logx/commit/c67780aaa2ccdf8685a331c4c3aebd5a47bce048))
+
+
+### BREAKING CHANGES
+
+* requires @nestjs/common/@nestjs/core ^11; LoggerInject is
+replaced by InjectLogger + LoggerModule.forFeature; the global token registry
+is removed.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_0189XtQZGfiNSc6RJE2TDC3Y
+
 # [1.1.0](https://github.com/mpgxc/logx/compare/v1.0.1...v1.1.0) (2024-05-05)
 
 
