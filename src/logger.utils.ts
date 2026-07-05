@@ -65,7 +65,7 @@ export const levelsFrom = (min: LogLevel): LogLevel[] => {
 export const redact = <T>(
   value: T,
   keys: string[],
-  seen = new WeakSet(),
+  seen: WeakSet<object> = new WeakSet(),
 ): T => {
   if (!keys.length || value === null || typeof value !== 'object') {
     return value;
