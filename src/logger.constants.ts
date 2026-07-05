@@ -37,3 +37,21 @@ export const DEFAULT_REDACT_KEYS = [
 
 /** Header used by the correlation middleware. */
 export const CORRELATION_ID_HEADER = 'x-correlation-id';
+
+/** W3C Trace Context header carrying `version-traceId-spanId-flags`. */
+export const TRACEPARENT_HEADER = 'traceparent';
+
+/**
+ * Maps our log levels to the OpenTelemetry `SeverityNumber` enum used by the
+ * OTLP log data model.
+ * @see https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
+ * @internal
+ */
+export const OTEL_SEVERITY_NUMBER: Record<string, number> = {
+  verbose: 1, // TRACE
+  debug: 5, // DEBUG
+  log: 9, // INFO
+  warn: 13, // WARN
+  error: 17, // ERROR
+  fatal: 21, // FATAL
+};

@@ -14,7 +14,9 @@ behavior (including NestJS 11's structured-JSON output) and adds a clean
 - 🧩 **Exporters as adapters** — send the same log stream to many destinations.
 - 🪶 **Zero-bloat core** — heavy SDKs (`pg`, `mongodb`, `aws-sdk`) are
   **optional peer dependencies**, loaded on demand only when used.
-- 🧵 **Correlation IDs** — automatic per-request tracing via `AsyncLocalStorage`.
+- 🧵 **Correlation & tracing** — a `trace_id`/`span_id` traverses every log via
+  `AsyncLocalStorage`; **OpenTelemetry-friendly** and pluggable (W3C `traceparent`
+  by default, active OTel span when the SDK is present) + an OTLP log exporter.
 - 🔒 **Redaction** — strip secrets (`password`, `authorization`, …) before export.
 - 🛡️ **Failure isolation** — a broken exporter never crashes your app or the others.
 - 🎯 **Auto-context** — the logger derives its context from the injecting class,
@@ -34,7 +36,8 @@ npm install pg                                   # PgExporter
 npm install mongodb                              # MongoExporter
 npm install @aws-sdk/client-dynamodb @aws-sdk/lib-dynamodb   # DynamoDBExporter
 npm install @aws-sdk/client-cloudwatch-logs      # CloudWatchExporter
-# FileExporter, HttpExporter and ConsoleExporter have no extra dependencies.
+npm install @opentelemetry/api                   # OtelTraceContextProvider
+# File, Http, Console and OTLP exporters have no extra dependencies.
 ```
 
 ## Quickstart
@@ -100,11 +103,11 @@ export class BillingService {
 
 > `forFeature` requires `LoggerModule.forRoot({ isGlobal: true })` to be registered.
 
-## Correlation IDs
+## Correlation & OpenTelemetry tracing
 
 Register the middleware to open a per-request async context. Every log emitted
-during the request is automatically stamped with the correlation id, and the id
-is echoed back on the `x-correlation-id` response header.
+during the request is automatically stamped with a **`trace_id`**, **`span_id`**
+and **`correlationId`** — so a single id traverses *all* logs of a request.
 
 ```ts
 import { CorrelationMiddleware, setContext } from '@mpgxc/logx';
@@ -118,6 +121,45 @@ export class AppModule implements NestModule {
 
 // Enrich the active request context anywhere downstream:
 setContext({ userId, tenant });
+```
+
+The middleware honors the **W3C `traceparent`** header when present (so ids
+propagated from an upstream service flow through), and generates fresh ids
+otherwise. It echoes `x-correlation-id` back on the response.
+
+Every record carries the trace fields in **snake_case** (`trace_id`, `span_id`,
+`trace_flags`) — the OpenTelemetry/ECS log convention — so **Grafana Loki,
+Datadog and Elastic auto-correlate logs with traces** without extra config.
+
+### Pluggable trace source
+
+The trace context is produced by a `TraceContextProvider`. The default is
+zero-dependency (reads the async store above). To pick up the **active
+OpenTelemetry span** when you run an OTel SDK, swap in the OTel provider:
+
+```ts
+import { LoggerModule, OtelTraceContextProvider } from '@mpgxc/logx';
+
+LoggerModule.forRoot({
+  isGlobal: true,
+  traceContext: new OtelTraceContextProvider(), // needs @opentelemetry/api
+});
+```
+
+Now logs are stamped with the real `trace_id`/`span_id` of the current span,
+falling back to the middleware-generated ids when no span is active. Implement
+`TraceContextProvider` yourself to bridge any other tracing system.
+
+### Ship logs to an OpenTelemetry Collector
+
+`OtlpExporter` sends logs over **OTLP/HTTP (JSON)** — no OTel SDK required
+(Collectors accept OTLP/JSON on `/v1/logs`). Trace ids map to the OTLP record's
+`traceId`/`spanId`, closing the loop:
+
+```ts
+import { OtlpExporter } from '@mpgxc/logx';
+
+new OtlpExporter({ endpoint: 'http://collector:4318', serviceName: 'api' });
 ```
 
 ## Async configuration
@@ -145,6 +187,7 @@ LoggerModule.forRootAsync({
 | `MongoExporter`      | MongoDB collection                   | `mongodb` |
 | `DynamoDBExporter`   | DynamoDB table                       | `@aws-sdk/client-dynamodb`, `@aws-sdk/lib-dynamodb` |
 | `CloudWatchExporter` | AWS CloudWatch Logs                  | `@aws-sdk/client-cloudwatch-logs` |
+| `OtlpExporter`       | OpenTelemetry Collector (OTLP/HTTP)  | — (uses global `fetch`) |
 
 ```ts
 new HttpExporter({ url, format: 'loki', labels: { app: 'api' } });
@@ -187,6 +230,7 @@ LoggerModule.forRoot({
   redact?: string[];    // keys stripped from meta          (default: [])
   exporters?: LogExporter[];                                 // default: []
   batch?: { size?: number; intervalMs?: number };            // default: 100 / 2000ms
+  traceContext?: TraceContextProvider;                       // default: ALS (zero-dep)
 });
 ```
 

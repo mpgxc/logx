@@ -7,6 +7,12 @@ import { AsyncLocalStorage } from 'node:async_hooks';
  */
 export interface LogStore {
   correlationId?: string;
+  /** W3C/OpenTelemetry trace id (32-char hex). */
+  traceId?: string;
+  /** OpenTelemetry span id (16-char hex). */
+  spanId?: string;
+  /** OpenTelemetry trace flags (2-char hex). */
+  traceFlags?: string;
   [key: string]: unknown;
 }
 

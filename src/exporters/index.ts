@@ -5,3 +5,4 @@ export * from './pg.exporter';
 export * from './mongo.exporter';
 export * from './dynamodb.exporter';
 export * from './cloudwatch.exporter';
+export * from './otlp.exporter';

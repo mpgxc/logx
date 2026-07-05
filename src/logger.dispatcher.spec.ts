@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { defaultTraceContextProvider } from './context/trace-context';
 import { LogDispatcher } from './logger.dispatcher';
 import type {
   LogExporter,
@@ -24,6 +25,7 @@ const options = (
   redact: [],
   exporters,
   batch: { size: batch?.size ?? 100, intervalMs: batch?.intervalMs ?? 2000 },
+  traceContext: defaultTraceContextProvider,
 });
 
 const collector = (): LogExporter & { records: LogRecord[] } => {

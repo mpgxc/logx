@@ -26,8 +26,49 @@ export interface LogRecord {
   stack?: string;
   /** Correlation id propagated from the async context, when present. */
   correlationId?: string;
+  /**
+   * W3C/OpenTelemetry trace id (32-char hex) propagated across the request.
+   * Emitted in snake_case to match the OTel/ECS log data model so backends
+   * (Loki, Datadog, Elastic) auto-correlate logs with traces.
+   */
+  trace_id?: string;
+  /** OpenTelemetry span id (16-char hex) of the active span, when present. */
+  span_id?: string;
+  /** OpenTelemetry trace flags (2-char hex, e.g. `01` when sampled). */
+  trace_flags?: string;
   /** Arbitrary structured metadata attached to the entry. */
   meta?: Record<string, unknown>;
+}
+
+/**
+ * The trace correlation data attached to every log entry. Produced by a
+ * {@link TraceContextProvider} and mapped onto the snake_case fields of a
+ * {@link LogRecord}.
+ */
+export interface TraceContext {
+  /** Trace id (32-char hex). */
+  traceId?: string;
+  /** Span id (16-char hex). */
+  spanId?: string;
+  /** Trace flags (2-char hex). */
+  traceFlags?: string;
+  /** Correlation id (non-OTel; survives when no tracing is active). */
+  correlationId?: string;
+}
+
+/**
+ * Pluggable source of trace correlation. The default implementation reads
+ * from an `AsyncLocalStorage` store fed by the W3C `traceparent` header;
+ * swap in {@link OtelTraceContextProvider} to read the active OpenTelemetry
+ * span instead. Custom providers can bridge any tracing system.
+ */
+export interface TraceContextProvider {
+  /** Stable identifier used in diagnostics. */
+  readonly name: string;
+  /** Optional async setup (e.g. importing `@opentelemetry/api`). */
+  init?(): Promise<void> | void;
+  /** Returns the current trace context. MUST be synchronous. */
+  getContext(): TraceContext | undefined;
 }
 
 /**
@@ -80,6 +121,12 @@ export interface LoggerModuleOptions {
   exporters?: LogExporter[];
   /** Batching thresholds for the dispatcher. */
   batch?: BatchOptions;
+  /**
+   * Source of trace correlation stamped onto every record. Defaults to the
+   * zero-dep ALS provider (W3C `traceparent`); pass an
+   * `OtelTraceContextProvider` to read the active OpenTelemetry span.
+   */
+  traceContext?: TraceContextProvider;
 }
 
 /**

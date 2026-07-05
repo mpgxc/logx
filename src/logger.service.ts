@@ -7,14 +7,23 @@ import {
   Scope,
 } from '@nestjs/common';
 import { INQUIRER } from '@nestjs/core';
-import { getCorrelationId, getStore } from './context/als';
+import { getStore } from './context/als';
+import { defaultTraceContextProvider } from './context/trace-context';
 import { LOG_DISPATCHER, LOGGER_OPTIONS } from './logger.constants';
 import type { LogDispatcher } from './logger.dispatcher';
 import type {
   LogLevel,
   LogRecord,
   ResolvedLoggerOptions,
+  TraceContextProvider,
 } from './logger.interfaces';
+
+const TRACE_STORE_KEYS = new Set([
+  'correlationId',
+  'traceId',
+  'spanId',
+  'traceFlags',
+]);
 
 /**
  * Drop-in replacement for NestJS' built-in logger.
@@ -29,6 +38,7 @@ import type {
 @Injectable({ scope: Scope.TRANSIENT })
 export class LoggerService extends ConsoleLogger {
   private readonly dispatcher?: LogDispatcher;
+  private readonly trace: TraceContextProvider;
 
   constructor(
     @Optional() @Inject(INQUIRER) parent?: object | string,
@@ -44,6 +54,7 @@ export class LoggerService extends ConsoleLogger {
     });
 
     this.dispatcher = dispatcher;
+    this.trace = options?.traceContext ?? defaultTraceContextProvider;
   }
 
   private static contextFrom(parent?: object | string): string {
@@ -113,12 +124,14 @@ export class LoggerService extends ConsoleLogger {
     const store = getStore();
     if (store) {
       const extra = Object.fromEntries(
-        Object.entries(store).filter(([key]) => key !== 'correlationId'),
+        Object.entries(store).filter(([key]) => !TRACE_STORE_KEYS.has(key)),
       );
       if (Object.keys(extra).length) {
         meta = { ...(meta ?? {}), ...extra };
       }
     }
+
+    const tc = this.trace.getContext();
 
     return {
       level,
@@ -127,7 +140,10 @@ export class LoggerService extends ConsoleLogger {
       timestamp: Date.now(),
       pid: process.pid,
       stack: typeof errorStack === 'string' ? errorStack : undefined,
-      correlationId: getCorrelationId(),
+      correlationId: tc?.correlationId,
+      trace_id: tc?.traceId,
+      span_id: tc?.spanId,
+      trace_flags: tc?.traceFlags,
       meta,
     };
   }

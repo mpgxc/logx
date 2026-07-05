@@ -15,5 +15,6 @@ export default defineConfig({
     '@aws-sdk/client-dynamodb',
     '@aws-sdk/lib-dynamodb',
     '@aws-sdk/client-cloudwatch-logs',
+    '@opentelemetry/api',
   ],
 });
