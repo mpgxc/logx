@@ -219,6 +219,41 @@ export class SlackExporter implements LogExporter {
 }
 ```
 
+## HTTP request logging
+
+Register `LoggingInterceptor` to log one line per HTTP request — method, path,
+status code and latency — automatically stamped with the active `trace_id` /
+`correlationId`:
+
+```ts
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { LoggingInterceptor } from '@mpgxc/logx';
+
+@Module({
+  providers: [{ provide: APP_INTERCEPTOR, useClass: LoggingInterceptor }],
+})
+export class AppModule {}
+```
+
+Requests slower than `slowThresholdMs` are logged at `warn`; failures at
+`error` (and re-thrown). Non-HTTP contexts (RPC/WebSocket) pass through
+untouched. Configure via the `LOGGING_OPTIONS` token:
+
+```ts
+{ provide: LOGGING_OPTIONS, useValue: { slowThresholdMs: 500, includeIp: true } }
+```
+
+## Resilience
+
+The dispatcher never lets logging destabilize the app:
+
+- **Bounded buffer** — capped at `maxBufferSize`; on overflow it sheds load per
+  `dropPolicy` (`oldest` by default) instead of growing without limit.
+- **Retry with backoff** — a failing `export` is retried (`retry.attempts`) with
+  exponential backoff before the batch is given up on.
+- **Failure isolation** — one broken exporter never affects the others or the app.
+- **Counters** — `dispatcher.stats` exposes `{ buffered, exported, dropped, failed }`.
+
 ## Configuration reference
 
 ```ts
@@ -230,6 +265,9 @@ LoggerModule.forRoot({
   redact?: string[];    // keys stripped from meta          (default: [])
   exporters?: LogExporter[];                                 // default: []
   batch?: { size?: number; intervalMs?: number };            // default: 100 / 2000ms
+  maxBufferSize?: number;                                     // default: 10000
+  dropPolicy?: 'oldest' | 'newest';                          // default: 'oldest'
+  retry?: { attempts?: number; backoffMs?: number; maxBackoffMs?: number }; // 3 / 200 / 5000
   traceContext?: TraceContextProvider;                       // default: ALS (zero-dep)
 });
 ```

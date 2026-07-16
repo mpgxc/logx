@@ -104,6 +104,38 @@ export interface BatchOptions {
 }
 
 /**
+ * What to drop when the buffer is full:
+ * - `oldest`: evict the oldest buffered record (default) — keeps the freshest.
+ * - `newest`: reject the incoming record.
+ */
+export type DropPolicy = 'oldest' | 'newest';
+
+/**
+ * Retry policy applied per-exporter when an `export` call rejects, before the
+ * batch is given up on.
+ */
+export interface RetryOptions {
+  /** Total attempts (including the first). Default: 3. `1` disables retry. */
+  attempts?: number;
+  /** Base backoff in ms; grows exponentially (`backoffMs * 2^n`). Default: 200. */
+  backoffMs?: number;
+  /** Upper bound for a single backoff delay, in ms. Default: 5000. */
+  maxBackoffMs?: number;
+}
+
+/** Runtime counters exposed by the dispatcher for observability. */
+export interface DispatcherStats {
+  /** Records currently sitting in the buffer. */
+  buffered: number;
+  /** Records successfully handed to at least one exporter. */
+  exported: number;
+  /** Records dropped because the buffer was full. */
+  dropped: number;
+  /** Batches given up on after exhausting retries (per exporter). */
+  failed: number;
+}
+
+/**
  * Options accepted by {@link LoggerModule.forRoot}.
  */
 export interface LoggerModuleOptions {
@@ -121,12 +153,35 @@ export interface LoggerModuleOptions {
   exporters?: LogExporter[];
   /** Batching thresholds for the dispatcher. */
   batch?: BatchOptions;
+  /** Max records held in the buffer before dropping. Default: 10000. */
+  maxBufferSize?: number;
+  /** Which record to drop when the buffer is full. Default: `oldest`. */
+  dropPolicy?: DropPolicy;
+  /** Per-exporter retry policy on export failure. */
+  retry?: RetryOptions;
   /**
    * Source of trace correlation stamped onto every record. Defaults to the
    * zero-dep ALS provider (W3C `traceparent`); pass an
    * `OtelTraceContextProvider` to read the active OpenTelemetry span.
    */
   traceContext?: TraceContextProvider;
+}
+
+/**
+ * Options for {@link LoggingInterceptor}, the automatic HTTP request/response
+ * logger.
+ */
+export interface LoggingInterceptorOptions {
+  /** Level for successful requests. Default: `log`. */
+  level?: LogLevel;
+  /** Requests slower than this (ms) are logged at `warn`. Default: disabled. */
+  slowThresholdMs?: number;
+  /** Include the query string in the logged URL. Default: true. */
+  includeQuery?: boolean;
+  /** Include the `user-agent` header. Default: false. */
+  includeUserAgent?: boolean;
+  /** Include the client IP. Default: false. */
+  includeIp?: boolean;
 }
 
 /**
@@ -143,8 +198,9 @@ export interface LoggerModuleAsyncOptions
 
 /** @internal Resolved options with every field populated. */
 export interface ResolvedLoggerOptions
-  extends Required<Omit<LoggerModuleOptions, 'isGlobal' | 'batch'>> {
+  extends Required<Omit<LoggerModuleOptions, 'isGlobal' | 'batch' | 'retry'>> {
   batch: Required<BatchOptions>;
+  retry: Required<RetryOptions>;
 }
 
 /** Convenience alias for a class reference in provider wiring. */

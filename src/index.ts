@@ -6,6 +6,7 @@ export * from './logger.dispatcher';
 export * from './logger.module';
 export * from './logger.decorator';
 export * from './exporters';
+export * from './interceptors';
 export * from './context/als';
 export * from './context/trace-context';
 export * from './context/otel-trace-context';
