@@ -11,6 +11,12 @@ export const LOGGER_OPTIONS = Symbol('logx:options');
 export const LOG_DISPATCHER = Symbol('logx:dispatcher');
 
 /**
+ * Optional DI token carrying {@link LoggingInterceptorOptions}.
+ * @internal
+ */
+export const LOGGING_OPTIONS = Symbol('logx:logging-options');
+
+/**
  * Default numeric ordering for cascading level filtering.
  * A record is emitted when its rank is `>=` the configured level's rank.
  * @internal

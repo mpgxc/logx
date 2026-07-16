@@ -18,6 +18,11 @@ const record = (over: Partial<LogRecord> = {}): LogRecord => ({
 const options = (
   exporters: LogExporter[],
   batch?: Partial<ResolvedLoggerOptions['batch']>,
+  over?: {
+    maxBufferSize?: number;
+    dropPolicy?: ResolvedLoggerOptions['dropPolicy'];
+    retry?: Partial<ResolvedLoggerOptions['retry']>;
+  },
 ): ResolvedLoggerOptions => ({
   level: 'log',
   json: true,
@@ -25,6 +30,13 @@ const options = (
   redact: [],
   exporters,
   batch: { size: batch?.size ?? 100, intervalMs: batch?.intervalMs ?? 2000 },
+  maxBufferSize: over?.maxBufferSize ?? 10_000,
+  dropPolicy: over?.dropPolicy ?? 'oldest',
+  retry: {
+    attempts: over?.retry?.attempts ?? 1,
+    backoffMs: over?.retry?.backoffMs ?? 1,
+    maxBackoffMs: over?.retry?.maxBackoffMs ?? 10,
+  },
   traceContext: defaultTraceContextProvider,
 });
 
@@ -138,5 +150,81 @@ describe('LogDispatcher', () => {
       password: '[REDACTED]',
       user: 'ana',
     });
+  });
+
+  it('drops the oldest record when the buffer is full (dropPolicy: oldest)', () => {
+    const sink = collector();
+    // size huge so batch-size flush never fires; cap at 2.
+    const dispatcher = new LogDispatcher(
+      options([sink], { size: 1000, intervalMs: 0 }, { maxBufferSize: 2 }),
+    );
+
+    dispatcher.dispatch(record({ message: 'a' }));
+    dispatcher.dispatch(record({ message: 'b' }));
+    dispatcher.dispatch(record({ message: 'c' })); // evicts 'a'
+
+    expect(dispatcher.stats.dropped).toBe(1);
+    expect(dispatcher.stats.buffered).toBe(2);
+  });
+
+  it('rejects the incoming record when full (dropPolicy: newest)', () => {
+    const sink = collector();
+    const dispatcher = new LogDispatcher(
+      options(
+        [sink],
+        { size: 1000, intervalMs: 0 },
+        { maxBufferSize: 2, dropPolicy: 'newest' },
+      ),
+    );
+
+    dispatcher.dispatch(record({ message: 'a' }));
+    dispatcher.dispatch(record({ message: 'b' }));
+    dispatcher.dispatch(record({ message: 'c' })); // rejected
+
+    expect(dispatcher.stats.dropped).toBe(1);
+    expect(dispatcher.stats.buffered).toBe(2);
+  });
+
+  it('retries a failing exporter with backoff, then succeeds', async () => {
+    vi.useFakeTimers();
+    let attempts = 0;
+    const flaky: LogExporter = {
+      name: 'flaky',
+      export: () => {
+        attempts++;
+        if (attempts < 3) throw new Error('transient');
+      },
+    };
+    const dispatcher = new LogDispatcher(
+      options([flaky], { size: 1 }, { retry: { attempts: 3 } }),
+    );
+
+    dispatcher.dispatch(record());
+    await vi.runAllTimersAsync();
+
+    expect(attempts).toBe(3);
+    expect(dispatcher.stats.failed).toBe(0);
+    expect(dispatcher.stats.exported).toBe(1);
+    vi.useRealTimers();
+  });
+
+  it('gives up after exhausting retries and counts the failure', async () => {
+    vi.useFakeTimers();
+    const broken: LogExporter = {
+      name: 'broken',
+      export: () => {
+        throw new Error('always');
+      },
+    };
+    const dispatcher = new LogDispatcher(
+      options([broken], { size: 1 }, { retry: { attempts: 2 } }),
+    );
+
+    dispatcher.dispatch(record());
+    await vi.runAllTimersAsync();
+
+    expect(dispatcher.stats.failed).toBe(1);
+    expect(dispatcher.stats.exported).toBe(0);
+    vi.useRealTimers();
   });
 });

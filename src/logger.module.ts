@@ -26,6 +26,13 @@ const resolveOptions = (
     size: options.batch?.size ?? 100,
     intervalMs: options.batch?.intervalMs ?? 2000,
   },
+  maxBufferSize: options.maxBufferSize ?? 10_000,
+  dropPolicy: options.dropPolicy ?? 'oldest',
+  retry: {
+    attempts: options.retry?.attempts ?? 3,
+    backoffMs: options.retry?.backoffMs ?? 200,
+    maxBackoffMs: options.retry?.maxBackoffMs ?? 5000,
+  },
   traceContext: options.traceContext ?? defaultTraceContextProvider,
 });
 

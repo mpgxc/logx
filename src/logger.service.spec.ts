@@ -12,6 +12,9 @@ const opts: ResolvedLoggerOptions = {
   redact: [],
   exporters: [],
   batch: { size: 100, intervalMs: 2000 },
+  maxBufferSize: 10_000,
+  dropPolicy: 'oldest',
+  retry: { attempts: 3, backoffMs: 200, maxBackoffMs: 5000 },
   traceContext: defaultTraceContextProvider,
 };
 
